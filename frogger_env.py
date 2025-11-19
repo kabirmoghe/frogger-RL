@@ -83,7 +83,7 @@ class FroggerEnv():
         self._move_cars()
 
         # --- compute reward & done ---
-        reward = -0.01  # time penalty to avoid "dithering"
+        reward = -0.02  # time penalty to avoid "dithering"
         done = False
 
         # Collision? (frog shares cell with a car)
@@ -94,12 +94,16 @@ class FroggerEnv():
 
         # Reached goal row
         if self.frog_row == 0:
-            reward = 1.0
+            reward = 5.0
             done = True # won --> done
 
         # Max steps
         if self.steps >= self.max_steps:
             done = True # exceeded max_steps --> done
+
+            # Apply terminal penalty
+            if reward == -0.02:  # i.e., still in "dithering" mode
+                reward = -10.0 
 
         self.done = done
         obs = self._get_obs()

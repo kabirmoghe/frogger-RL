@@ -21,7 +21,7 @@ def human_play():
         while not done:
             clear_screen()
             print(f"Episode {episode}")
-            env.render(use_ascii=False)
+            env.render(use_ascii=True)
             print("Controls: w=up, s=down, a=left, d=right, e=stay, q=quit")
             action_key = input("Your move: ").strip().lower()
 
@@ -48,7 +48,7 @@ def human_play():
             total_reward += reward
 
             clear_screen()
-            env.render(use_ascii=False)
+            env.render(use_ascii=True)
             print(f"Last reward: {reward:.2f}   Total reward: {total_reward:.2f}")
             time.sleep(0.2)
 
@@ -69,3 +69,4 @@ def human_play():
 
 if __name__ == "__main__":
     human_play()
+    
