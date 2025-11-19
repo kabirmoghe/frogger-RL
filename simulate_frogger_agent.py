@@ -20,6 +20,7 @@ def clear_screen():
     os.system('clear' if os.name != 'nt' else 'cls')
 
 def watch_policy(policy, env, episodes=10, greedy=True, slowdown=0.2, use_ascii=False, max_steps=200):
+    cumulative_reward = 0.0
     for ep in range(episodes):
         state = env.reset()
         done = False
@@ -28,7 +29,7 @@ def watch_policy(policy, env, episodes=10, greedy=True, slowdown=0.2, use_ascii=
 
         while not done and step_count < max_steps:
             clear_screen()                        # 👈 clear previous frame
-            print(f"Episode {ep+1}")
+            print(f"Episode {ep+1} | Cumulative reward: {cumulative_reward:.3f}")
             env.render(use_ascii=use_ascii)       # 👈 draw the grid
             print(f"Step: {step_count}, Return: {total_reward:.3f}")
             time.sleep(slowdown)
@@ -45,6 +46,9 @@ def watch_policy(policy, env, episodes=10, greedy=True, slowdown=0.2, use_ascii=
             state, reward, done, _ = env.step(action)
             total_reward += reward
             step_count += 1
+
+        # update cumulative reward
+        cumulative_reward += total_reward
 
         # final frame
         clear_screen()
@@ -89,5 +93,5 @@ def evaluate_policy(policy, env, n_episodes=200, greedy=True):
 if __name__ == "__main__":
     policy, env = load_policy("checkpoints/frogger_policy.pt")
     evaluate_policy(policy, env, n_episodes=200, greedy=True)
-    time.sleep(5.0)
-    watch_policy(policy, env, episodes=20, greedy=True, slowdown=0.15, use_ascii=False)
+    time.sleep(2.0)
+    watch_policy(policy, env, episodes=20, greedy=True, slowdown=0.5, use_ascii=True)

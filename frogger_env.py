@@ -136,14 +136,16 @@ class FroggerEnv():
             frog_symbol = 'F'
             lane_symbol_right = '>'
             lane_symbol_left = '<'
-            car_symbol = 'C'
+            car_symbol_1 = 'C'
+            car_symbol_2 = 'C'
             empty_symbol = '.'
         else:
-            goal_symbol = '🎯'
+            goal_symbol = '🏆'
             frog_symbol = '🐸'
             lane_symbol_right = '→'
             lane_symbol_left = '←'
-            car_symbol = '🚘'
+            car_symbol_1 = '🚙'
+            car_symbol_2 = '🚘'
             empty_symbol = '·'
 
         # Base grid filled with "empty" symbol
@@ -161,7 +163,10 @@ class FroggerEnv():
 
             # Place cars as car_symbol (overwriting arrows)
             for c in self.cars[row]:
-                grid[row][c] = car_symbol
+                if row % 2 == 0:
+                    grid[row][c] = car_symbol_1
+                else:
+                    grid[row][c] = car_symbol_2
 
         # Frog (overwrites whatever is underneath)
         grid[self.frog_row][self.frog_col] = frog_symbol
