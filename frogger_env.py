@@ -1,7 +1,23 @@
 import random
 import numpy as np
+from render_utils import render_game
 
 class FroggerEnv():
+    """
+    (Simplified) Frogger environment.
+    - Cars either move left or right in their respective lanes.
+    - Frog can move up, down, left, right, or stay still.
+    - Goal is to reach the top row.
+    
+    Reward Surface:
+    - Reward += -0.02 per step penalty to avoid "dithering"
+    - Reward += -1.0 for collision (want to avoid death but not discourage exploration)
+    - Reward += 5.0 for reaching the goal (want to encourage reaching the goal)
+    - Reward += -10.0 for exceeding the maximum number of steps (agent occasionally learns strategy to not move if penalty for exceeding max steps is too low)
+    
+    Done = True when the frog reaches the goal or exceeds the maximum number of steps.
+    """
+
     def __init__(self, height: int=6, width: int=5, max_steps: int=50):
         self.H = height
         self.W = width
@@ -11,7 +27,7 @@ class FroggerEnv():
         self.lane_rows = list(range(1, self.H - 1)) # [...start... | | | | ...end...]
         self.lane_dirs = [1, -1, 1, -1][:len(self.lane_rows)] # cars flow either left (-1) or right (1)
 
-        # Cars per lane = 2
+        # Have 2 cars per lane
         self.cars_per_lane = 2
 
         self.reset()
@@ -35,7 +51,14 @@ class FroggerEnv():
 
     
     def _get_obs(self):
-        # Create 3 input channels per grid cell: frog, cars, goal
+        """
+        Get observation of the environment and turn into flattened input vector.
+        - 3 input channels per grid cell: frog, cars, goal
+        - frog: 1.0 if frog is in the cell, 0.0 otherwise
+        - cars: 1.0 if a car is in the cell, 0.0 otherwise
+        - goal: 1.0 if the goal is in the cell, 0.0 otherwise
+        """
+
         grid = np.zeros((3, self.H, self.W), dtype=np.float32)
         
         # Frog (1st channel, get position there)
@@ -52,6 +75,10 @@ class FroggerEnv():
         return grid.flatten()  # shape is (3 * H * W,)
 
     def _move_cars(self):
+        """
+        Move cars in their respective lanes (making them wrap around the edges of the grid).
+        """
+
         new_cars = {}
         for row, d in zip(self.lane_rows, self.lane_dirs):
             new_positions = []
@@ -62,6 +89,14 @@ class FroggerEnv():
         self.cars = new_cars
 
     def step(self, action):
+        """
+        Take a step in frogger env.
+        - action: 0 = UP, 1 = DOWN, 2 = LEFT, 3 = RIGHT, 4 = STAY
+        - reward: reward for the step
+        - done: True if episode done, False o/w
+        - info: dictionary of additional information (currently unused)
+        """
+
         if self.done:
             raise RuntimeError("Call reset() before step() after done=True.")
 
@@ -102,7 +137,7 @@ class FroggerEnv():
             done = True # exceeded max_steps --> done
 
             # Apply terminal penalty
-            if reward == -0.02:  # i.e., still in "dithering" mode
+            if reward == -0.02:  # i.e., still in "dithering" mode, want to really discourage this
                 reward = -10.0 
 
         self.done = done
@@ -112,66 +147,11 @@ class FroggerEnv():
 
     def render(self, use_ascii: bool = True):
         """
-        Rendering rules:
-
-        If use_ascii is True:
-            - Goal row: 'G'
-            - Lanes with cars:
-                - 'C' where cars are
-                - '>' or '<' in empty spaces, depending on lane direction
-            - Start row (bottom): '.'
-            - Frog: 'F'
-
-        If use_ascii is False (emoji mode):
-            - Goal row: '🎯'
-            - Lanes with cars:
-                - '🚗' where cars are
-                - '→' or '←' in empty spaces, depending on lane direction
-            - Start row (bottom): '·'
-            - Frog: '🐸'
+        Render the game state.
+        Delegates to render_utils.render_game() for consistent rendering across all modes.
+        
+        Args:
+            use_ascii: True for ASCII mode, False for emoji mode
         """
-        # Choose symbols based on mode
-        if use_ascii:
-            goal_symbol = 'G'
-            frog_symbol = 'F'
-            lane_symbol_right = '>'
-            lane_symbol_left = '<'
-            car_symbol_1 = 'C'
-            car_symbol_2 = 'C'
-            empty_symbol = '.'
-        else:
-            goal_symbol = '🏆'
-            frog_symbol = '🐸'
-            lane_symbol_right = '→'
-            lane_symbol_left = '←'
-            car_symbol_1 = '🚙'
-            car_symbol_2 = '🚘'
-            empty_symbol = '·'
-
-        # Base grid filled with "empty" symbol
-        grid = [[empty_symbol for _ in range(self.W)] for _ in range(self.H)]
-
-        # Goal row
-        for c in range(self.W):
-            grid[0][c] = goal_symbol
-
-        # Lane rows with directional fill
-        for row, d in zip(self.lane_rows, self.lane_dirs):
-            lane_fill = lane_symbol_right if d == 1 else lane_symbol_left
-            for col in range(self.W):
-                grid[row][col] = lane_fill
-
-            # Place cars as car_symbol (overwriting arrows)
-            for c in self.cars[row]:
-                if row % 2 == 0:
-                    grid[row][c] = car_symbol_1
-                else:
-                    grid[row][c] = car_symbol_2
-
-        # Frog (overwrites whatever is underneath)
-        grid[self.frog_row][self.frog_col] = frog_symbol
-
-        # Print grid
-        for r in range(self.H):
-            print(' '.join(grid[r]))
-        print()
+        render_game(self, use_ascii=use_ascii, use_carriage_returns=False)
+        print()  # Add blank line after rendering for spacing

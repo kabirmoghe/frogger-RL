@@ -91,7 +91,8 @@ def evaluate_policy(policy, env, n_episodes=200, greedy=True):
     print(f"Avg length: {sum(lengths) / n_episodes:.2f}")
 
 if __name__ == "__main__":
-    policy, env = load_policy("checkpoints/frogger_policy.pt")
+    policy_path = "checkpoints/frogger_policy_0.89.pt"
+    policy, env = load_policy(policy_path)
     evaluate_policy(policy, env, n_episodes=200, greedy=True)
     time.sleep(2.0)
     watch_policy(policy, env, episodes=20, greedy=True, slowdown=0.5, use_ascii=True)
