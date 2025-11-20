@@ -267,7 +267,7 @@ def plot_results(episode_returns, episode_losses, episode_success):
 
 if __name__ == "__main__":
     train_reinforce(
-        num_episodes=30000,
+        num_episodes=40000,
         gamma=0.99,
         lr=1e-3,
         render_every=6000,  # watch every 6000 training episodes (0 to disable)

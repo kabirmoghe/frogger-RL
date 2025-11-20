@@ -1,4 +1,4 @@
-# Frogger RL
+# Frogger + RL
 
 Reinforcement learning applied to a Frogger, featuring a trained RL agent and an interactive command-line UI.
 
@@ -29,11 +29,13 @@ Through the first few iterations of training, found that the magnitude of the pe
 
 As such, decided to drastically increase the penalty from an initial `-0.5` to `-2.0`, and then found that further increases (to an arbitrarily large penalty of `-10` yielded greater success by training away the lingering, `max_steps` strategy).
 
+> **Note:** because this reward structure is inherently sparse, a small positive reward was later added for forward progress, discussed in reward shaping further below.
+
 ## Training
 
 Ultimately trained the action-taking agent using an MLP policy using the REINFORCE policy gradient (augmented with entropy and baseline).
 
-> **TL;DR:** built Frogger-playing agent with 90% success rate.
+> **TL;DR:** built Frogger-playing agent with $\geq 95$% success rate.
 
 ### Policy Definition
 
@@ -143,16 +145,36 @@ The following shows this with greater clarity:
 >*Return & success respectively across 30000 episodes **after** adding entropy*
 
 <p align="center">
-  <img src="evaluation/return_optimized.png" alt="Initial Return During Training" width="300"/>
-  <img src="evaluation/success_optimized.png" alt="Initial Return During Training" width="300"/>
+  <img src="evaluation/return_89.png" alt="Initial Return During Training" width="300"/>
+  <img src="evaluation/success_89.png" alt="Initial Return During Training" width="300"/>
 </p>
 
-> **Note:** the loss here (not shown) is not as telling, given that it's an indirect representation of returns, and as such, the loss through training remains relatively noisy (which is not inherently problematic).
+### Successful Reward Shaping
+
+A problem with applying a strategy like REINFORCE / policy gradients to a sparse reward structure like Frogger (i.e., only achieve any positive reward upon reaching the end goal) is that positive signals for things like forward progress aren't learned explicitly *until* the agent manages to reach the end goal for the first time. 
+
+**Solution:** decided to add a small reward when the agent makes forward progress into the lanes, with that reward growing linearly as it reaches closer to the goal (at which point the agent is granted the final `+5` reward) to also help offset the dithering step penalty since successful forward progress is good. 
+
+```python
+fwd_progress_reward = 0.02 * row # row in lanes [0, 5]
+```
+
+Upon using this slightly adapted reward structure — along with slightly more training episodes, also noting that cumulative return is higher because of shaping-induced intermediate rewards — was able to boost return and success to $\geq 95$%:
+
+>*Return & success respectively across 40000 episodes **after** reward shaping*
+
+<p align="center">
+  <img src="evaluation/return_98.png" alt="Initial Return During Training" width="300"/>
+  <img src="evaluation/success_98.png" alt="Initial Return During Training" width="300"/>
+</p>
+ 
+
+> **Note:** the loss across all versions here (not shown) is not as telling, given that it's an indirect representation of returns, and as such, the loss through training remains relatively noisy (which is not inherently problematic).
 
 ### Next Steps & Future Directions
 While this MLP + policy gradient approach (via REINFORCE pattern) works relatively well, shown through the minimal training load and success achieved (with the few optimizations that were made), there are definitely ways in which this can be taken further:
 
-- **Q-Learning:** an approach that might lend itself to this set-up, which has a relatively simple environment and action space compared to something like Go or even Chess.
+- **Q-Learning (...and DQN?):** an approach that might lend itself to this set-up, which has a relatively simple environment and action space compared to something like Go or even Chess.
   
 - **Actor-Critic:** makes use of a ```critic``` that can estimate the value of the given state to generate a more stable learning signal, then communicate that to the ```actor``` to update its policy more efficiently; helpful for reducing variance.
   
@@ -161,7 +183,7 @@ While this MLP + policy gradient approach (via REINFORCE pattern) works relative
 
 ## Running Agent ( + Optional Gameplay)
 
-The trained agent can be run live in the frogger grid, and through interaction, one can see that it generally succeeds 90% of the time. Though the behavior was minimized, the "dithering" tendancy/strategy to wait out the game through `max_steps` occasionally reappears (though some of the next steps above could help eliminate or at the very least minimize this further)... 
+The trained agent can be run live in the frogger grid, and through interaction, one can see that it generally succeeds $\geq 90$% of the time. Though the behavior was minimized, the "dithering" tendancy/strategy to wait out the game through `max_steps` occasionally reappears (though some of the next steps above could help eliminate or at the very least minimize this further)... 
 
 ### Run Frogger Agent CLI
 
@@ -206,20 +228,37 @@ The game runs continuously, i.e., cars keep moving even when user doesn't act.
 
 ## Project Components
 
-`frogger_cli.py` - interactive UI (recommended way to watch agent & play)
-
-`frogger_env.py` - Frogger game environment implementation
-
-`frogger_policy.py` - Network / MLP policy for frogger agent action
-
-`train_agent.py` - Training script with logging and visualization
-
-`render_utils.py` - Shared rendering utilities
-
-`simulate_frogger_agent.py` - Isolated agent evaluation and visualization
-
-`human_play.py` - step-by-step human play mode
-
-`checkpoints/frogger_policy_89.pt` - Best learned policy
-
+`frogger_cli.py` - interactive UI (recommended way to watch agent & play)<br>
+`frogger_env.py` - Frogger game environment implementation<br>
+`frogger_policy.py` - Network / MLP policy for frogger agent action<br>
+`train_agent.py` - Training script with logging and visualization<br>
+`render_utils.py` - Shared rendering utilities<br>
+`simulate_frogger_agent.py` - Isolated agent evaluation and visualization<br>
+`human_play.py` - step-by-step human play mode<br>
+`checkpoints/frogger_policy_98.pt` - Best learned policy<br>
 `training_logs.txt` - Training logs (episode by episode, generated during training)
+
+## References & Resources
+
+### REINFORCE Algorithm
+
+- [Lil'Log: Policy Gradient Methods](https://lilianweng.github.io/posts/2018-04-08-policy-gradient/)
+- [CS229 Lecture Notes: Reinforcement Learning](https://cs229.stanford.edu/notes2020fall/notes2020fall/cs229-notes14.pdf)
+- [Wikipedia: Policy Gradient Method](https://en.wikipedia.org/wiki/Policy_gradient_method)
+- [Medium: REINFORCE Algorithm from Scratch in PyTorch](https://medium.com/@sofeikov/reinforce-algorithm-reinforcement-learning-from-scratch-in-pytorch-41fcccafa107)
+
+### Q-Learning & SARSA
+
+- [Annual Review of Statistics: Temporal Difference Learning](https://www.annualreviews.org/content/journals/10.1146/annurev-statistics-031219-041220)
+- [Model-Free Control with SARSA](https://pantelis.github.io/aiml-common/lectures/reinforcement-learning/model-free-control/sarsa/index.html)
+
+### Actor-Critic Methods
+
+- [Wikipedia: Actor-Critic Algorithm](https://en.wikipedia.org/wiki/Actor-critic_algorithm)
+- [RL Notes: Actor-Critic](https://gibberblot.github.io/rl-notes/single-agent/actor-critic.html)
+
+### Deep Q-Networks (DQN)
+
+- [Medium: Deep Q-Learning (DQN) Explained](https://medium.com/@samina.amin/deep-q-learning-dqn-71c109586bae)
+- [Hugging Face: Deep RL Course - Unit 3](https://huggingface.co/learn/deep-rl-course/en/unit3/deep-q-network)
+- [YouTube: DQN Tutorial](https://www.youtube.com/watch?v=EUrWGTCGzlA)

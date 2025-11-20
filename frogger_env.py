@@ -100,6 +100,10 @@ class FroggerEnv():
         if self.done:
             raise RuntimeError("Call reset() before step() after done=True.")
 
+        # --- remember old position  ---
+        old_row = self.frog_row
+        old_col = self.frog_col
+
         self.steps += 1
 
         # --- move frog ---
@@ -121,6 +125,10 @@ class FroggerEnv():
         reward = -0.02  # time penalty to avoid "dithering"
         done = False
 
+        # --- small reward if just moved UP toward goal ---
+        if self.frog_row < old_row:
+            reward += 0.02 * (self.H - self.frog_row)
+
         # Collision? (frog shares cell with a car)
         if self.frog_row in self.lane_rows:
             if self.frog_col in self.cars[self.frog_row]:
@@ -137,7 +145,7 @@ class FroggerEnv():
             done = True # exceeded max_steps --> done
 
             # Apply terminal penalty
-            if reward == -0.02:  # i.e., still in "dithering" mode, want to really discourage this
+            if reward != 5.0:  # i.e., still in "dithering" mode, want to really discourage this
                 reward = -10.0 
 
         self.done = done

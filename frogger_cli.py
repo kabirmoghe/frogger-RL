@@ -254,7 +254,7 @@ def human_play(use_ascii=True, game_speed=0.3):
 
 def watch_agent(use_ascii=True, episodes=5):
     """Watch RL agent play"""
-    checkpoint_path = "checkpoints/frogger_policy_0.89.pt"
+    checkpoint_path = "checkpoints/frogger_policy_0.98.pt"
     if not os.path.exists(checkpoint_path):
         print(f"Error: Could not find policy at {checkpoint_path}")
         print("Press any key to return to menu...")
@@ -272,11 +272,16 @@ def watch_agent(use_ascii=True, episodes=5):
     
     cumulative_reward = 0.0
     
+    # Action names for display
+    action_names = {0: "UP", 1: "DOWN", 2: "LEFT", 3: "RIGHT", 4: "STAY"}
+    
     for ep in range(episodes):
         state = env.reset()
         done = False
         total_reward = 0.0
         step_count = 0
+        actions_taken = []  # Track all actions in this episode
+        current_action = None
         
         while not done and step_count < 200:
             clear_screen()
@@ -286,7 +291,13 @@ def watch_agent(use_ascii=True, episodes=5):
             print()
             render_game(env, use_ascii)
             print()
-            print(f"Episode Reward: {total_reward:.2f}")
+            
+            # Display episode reward with last move
+            if current_action is not None:
+                print(f"Episode Reward: {total_reward:.2f} | {action_names[current_action]}")
+            else:
+                print(f"Episode Reward: {total_reward:.2f}")
+            
             print()
             print("(Press Ctrl+C to stop)")
             
@@ -297,6 +308,9 @@ def watch_agent(use_ascii=True, episodes=5):
             with torch.no_grad():
                 logits = policy(state_tensor)
                 action = logits.argmax(dim=-1).item()
+            
+            current_action = action
+            actions_taken.append(action_names[action])
             
             state, reward, done, _ = env.step(action)
             total_reward += reward
@@ -318,20 +332,26 @@ def watch_agent(use_ascii=True, episodes=5):
         elif total_reward < -0.5:
             print("✗ Agent failed to reach the goal.")
         
-        print(f"\nEpisode Reward: {total_reward:.2f}")
+        # Display episode reward with last move
+        if current_action is not None:
+            print(f"\nEpisode Reward: {total_reward:.2f} | {action_names[current_action]}")
+        else:
+            print(f"\nEpisode Reward: {total_reward:.2f}")
+        
         print(f"Cumulative Reward: {cumulative_reward:.2f}")
+        print(f"Moves: {actions_taken}")
         print()
         
         if ep < episodes - 1:
-            print("Next episode in 2 seconds...")
-            time.sleep(2.0)
+            input("Press Enter to continue to next episode...")
+        else:
+            # Last episode
+            print(f"All {episodes} episodes complete!")
+            print(f"Average reward: {cumulative_reward/episodes:.2f}")
+            print()
+            input("Press Enter to return to menu...")
     
-    print()
-    print(f"All {episodes} episodes complete!")
-    print(f"Average reward: {cumulative_reward/episodes:.2f}")
-    print()
-    print("Press any key to return to menu...")
-    getch()
+    return
 
 def main():
     """Main entry point"""
