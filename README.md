@@ -1,6 +1,6 @@
 # Frogger + RL
 
-Reinforcement learning applied to a Frogger, featuring a trained RL agent and an interactive command-line UI.
+Reinforcement learning applied to Frogger, featuring a trained RL agent and an interactive command-line UI.
 
 <p align="center">
   <img src="media/frogger-rl-demo.gif" alt="Frogger RL Demo" width="300"/>
@@ -9,7 +9,7 @@ Reinforcement learning applied to a Frogger, featuring a trained RL agent and an
 
 ## Defining the Environement
 
-Here, the goal was to develop a competent Frogger agent that could play on a simplified / discretized version of the arcade game. Ultimately, the state was implemented as follows:
+**Objective:** develop a competent Frogger agent that could play on a simplified / discretized version of the arcade game. Ultimately, the state was implemented as follows:
 
 - A fixed `W x H` grid, with cells harboring the player's frog, a car, or the goal (or simply being empty).
 - There are four car lanes, two of which flow to the right and two of which flow left.
@@ -35,7 +35,7 @@ As such, decided to drastically increase the penalty from an initial `-0.5` to `
 
 Ultimately trained the action-taking agent using an MLP policy using the REINFORCE policy gradient (augmented with entropy and baseline).
 
-> **TL;DR:** built Frogger-playing agent with $\geq 95$% success rate.
+> **TL;DR:** built Frogger-playing agent with **95.9%** success rate (validated over 20,000 episodes using greedy action selection).
 
 ### Policy Definition
 
@@ -131,9 +131,9 @@ learning_rate=1e-3
 
 Upon augmenting the initial training process with things like advantages (baseline smoothing) and decaying entropy, found that the improvement in guiding the agent to find winning strategy that was (a) more successful and (b) achieved earlier on lay in a mix of these two optimizations, but mostly in the addition of entropy.
 
-As explained prior, observed that the return and success achieved their maxima (at least with this policy and training approach) **far earlier when incorporating decaying entropy**. This can likely be attributed to the fact that in doing so, the agent is pushed to adjust its weights early on to explore a broader variety of actions in its space, allowing it to discover successful patterns like moving `UP`, `LEFT`, etc. in whatever pattern to avoid cars in order to be able to achieve the reward at the goal line. 
+As explained prior, observed that the return and success (acheived goal or not) achieved their maxima (at least with this policy and training approach) **far earlier when incorporating decaying entropy**. This can likely be attributed to the fact that in doing so, the agent is pushed to adjust its weights early on to explore a broader variety of actions in its space, allowing it to discover successful patterns like moving `UP`, `LEFT`, etc. in whatever pattern to avoid cars in order to be able to achieve the reward at the goal line. 
 
-The following shows this with greater clarity:
+The following shows this with greater clarity.
 
 >*Return & success respectively across 30000 episodes **prior** to adding entropy*
 
@@ -171,10 +171,68 @@ Upon using this slightly adapted reward structure — along with slightly more 
 
 > **Note:** the loss across all versions here (not shown) is not as telling, given that it's an indirect representation of returns, and as such, the loss through training remains relatively noisy (which is not inherently problematic).
 
-### Next Steps & Future Directions
+### Metrics & Evaluation
+
+#### Training Monitoring
+
+During training, tracked success rate, episode returns, and policy loss across all episodes. Logs are saved to `training_logs.txt` for detailed inspection. Training process showed steady improvement with the final checkpoints achieving high success rates.
+
+#### Rigorous Validation Protocol
+
+After training, performed comprehensive validation using `validate_agent.py` (with 20k runs to obtain more reliable metrics):
+
+**Validation Setup:**
+
+- **Episodes:** 20,000 evaluation runs
+- **Action Selection:** greedy/deterministic (argmax), *NOT* stochastic sampling
+- **Policy:** `checkpoints/frogger_policy_0.98.pt` (best trained policy)
+
+**Results:**
+
+| Metric | Value | 95% Confidence Interval |
+|--------|-------|-------------------------|
+| **Success Rate** | **95.91%** (19,181/20,000) | [95.63%, 96.18%] |
+| **Mean Return** | 4.51 ± 3.15 | [4.47, 4.55] |
+| **Median Return** | 5.16 | — |
+| **Mean Episode Length** | 8.83 ± 8.48 steps | — |
+| **Median Episode Length** | 7 steps | — |
+
+**Key Findings:**
+
+- The agent successfully reaches the goal in **95.91% of episodes**, demonstrating learned behavior
+- When successful, episodes typically complete in 7-9 steps, showing efficient pathfinding
+- Return distribution is bimodal: successful episodes cluster around +5.0, while failures result in negative returns
+- Narrow confidence interval (±0.3% on success rate) confirms statistical significance over 20k episodes
+
+**Validation Visualizations:**
+
+The validation script is also helpful for generating comprehensive plots showing return distributions, rolling success rates, episode lengths, and correlations between metrics:
+
+<p align="center">
+  <img src="evaluation/validation_frogger_policy_0.98.png" alt="Validation Results for Best Policy" width="700"/>
+</p>
+
+> **Interpretation:** return histogram (top-left) shows the clear bimodal distribution between successful (+5 and incremental intermediate rewards/penalties) and failed episodes (with failed episodes almost exclusively being from the lingering max-steps, dithering behavior). The rolling success rate (top-right) remains stable around 96% throughout evaluation, confirming consistent performance. Episode length distribution (bottom-left) shows most episodes terminate quickly, while the scatter plot (bottom-right) reveals that successful episodes cluster in the 5-10 step range; failed episodes are evidently due to dying or max-steps achieved (with most genuine fails, i.e., not because of max-steps, having slightly-positive rewards, indicating some forward progress).
+
+**Running Validation:**
+
+To reproduce these results or validate other checkpoints:
+
+```bash
+python validate_agent.py
+```
+
+Configuration can be adjusted in the script:
+
+- `CHECKPOINT_PATH`: Policy to evaluate
+- `NUM_EPISODES`: Number of validation episodes (default: 20,000)
+- `USE_GREEDY`: Deterministic vs. stochastic action selection (default: True for evaluation) 
+
+## Next Steps & Future Directions
+
 While this MLP + policy gradient approach (via REINFORCE pattern) works relatively well, shown through the minimal training load and success achieved (with the few optimizations that were made), there are definitely ways in which this can be taken further:
 
-- **Q-Learning (...and DQN?):** an approach that might lend itself to this set-up, which has a relatively simple environment and action space compared to something like Go or even Chess.
+- **Q-Learning (+ DQN):** an approach that might lend itself to this set-up, which has a relatively simple environment and action space compared to something like Go or even chess.
   
 - **Actor-Critic:** makes use of a ```critic``` that can estimate the value of the given state to generate a more stable learning signal, then communicate that to the ```actor``` to update its policy more efficiently; helpful for reducing variance.
   
@@ -183,7 +241,7 @@ While this MLP + policy gradient approach (via REINFORCE pattern) works relative
 
 ## Running Agent ( + Optional Gameplay)
 
-The trained agent can be run live in the frogger grid, and through interaction, one can see that it generally succeeds $\geq 90$% of the time. Though the behavior was minimized, the "dithering" tendancy/strategy to wait out the game through `max_steps` occasionally reappears (though some of the next steps above could help eliminate or at the very least minimize this further)... 
+The trained agent can be run live in the frogger grid. As validated through rigorous testing (see **Metrics & Evaluation** above), the agent achieves a **95.9% success rate** over 20,000 episodes using greedy action selection. Though largely minimized through training optimizations, occasional suboptimal behaviors (like the "dithering" / max-steps waiting) still appear in edge cases... 
 
 ### Run Frogger Agent CLI
 
@@ -228,15 +286,29 @@ The game runs continuously, i.e., cars keep moving even when user doesn't act.
 
 ## Project Components
 
-`frogger_cli.py` - interactive UI (recommended way to watch agent & play)<br>
-`frogger_env.py` - Frogger game environment implementation<br>
-`frogger_policy.py` - Network / MLP policy for frogger agent action<br>
-`train_agent.py` - Training script with logging and visualization<br>
-`render_utils.py` - Shared rendering utilities<br>
-`simulate_frogger_agent.py` - Isolated agent evaluation and visualization<br>
-`human_play.py` - step-by-step human play mode<br>
-`checkpoints/frogger_policy_98.pt` - Best learned policy<br>
-`training_logs.txt` - Training logs (episode by episode, generated during training)
+**Core Implementation:**
+
+- `frogger_env.py` - Frogger game environment implementation
+- `frogger_policy.py` - Neural network (MLP) policy for agent decision-making
+- `render_utils.py` - Shared rendering utilities for ASCII/emoji display
+
+**Training & Evaluation:**
+
+- `train_agent.py` - Training script with REINFORCE algorithm, logging, and visualization
+- `validate_agent.py` - **Rigorous validation script** (20k episodes, greedy evaluation, statistical analysis)
+- `training_logs.txt` - Episode-by-episode training logs
+
+**Interactive Modes:**
+
+- `frogger_cli.py` - **Interactive CLI** (recommended) - watch agent or play yourself
+- `simulate_frogger_agent.py` - Isolated agent evaluation and visualization
+- `human_play.py` - Step-by-step human play mode
+
+**Saved Models & Results:**
+
+- `checkpoints/frogger_policy_0.98.pt` - **Best learned policy** (~98% training, 95.9% val. success rate)
+- `evaluation/validation_frogger_policy_0.98.png` - Validation results visualization
+- `evaluation/validation_results.json` - Validation metrics and statistics
 
 ## References & Resources
 

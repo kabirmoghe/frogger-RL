@@ -1,0 +1,24 @@
+{
+  "num_episodes": 20000,
+  "checkpoint": "checkpoints/frogger_policy_0.98.pt",
+  "greedy": true,
+  "timestamp": "2025-11-20 14:13:37",
+  "mean_return": 4.510313,
+  "std_return": 3.1520851292487326,
+  "median_return": 5.16,
+  "min_return": -10.98,
+  "max_return": 5.2,
+  "success_rate": 0.95905,
+  "num_successes": 19181,
+  "mean_length": 8.83135,
+  "std_length": 8.479174911363723,
+  "median_length": 7.0,
+  "return_95_ci": [
+    4.4666273289125265,
+    4.553998671087474
+  ],
+  "success_95_ci": [
+    0.9563034427790778,
+    0.9617965572209222
+  ]
+}
